@@ -1,27 +1,14 @@
 import pytesseract
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-def extract_text(image, language):
+def extract_text(image, language="eng"):
     """
-    language:
-    eng  -> English
-    hin  -> Hindi
-    mar  -> Marathi
-    hye  -> Armenian
+    Extract text using Tesseract.
     """
-
-    # 🔥 CRITICAL CONFIG
-    custom_config = (
-        r"--oem 3 "
-        r"--psm 6 "
-        r"-c preserve_interword_spaces=1"
-    )
-
+    config = r"--oem 3 --psm 6 -c preserve_interword_spaces=1"
     return pytesseract.image_to_string(
         image,
         lang=language,
-        config=custom_config
+        config=config
     )

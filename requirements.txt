@@ -3,5 +3,8 @@ numpy
 pillow
 pytesseract
 opencv-python-headless
-torch
 transformers
+torch
+sentencepiece
+regex
+scikit-learn

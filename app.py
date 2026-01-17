@@ -1,84 +1,60 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
+import re
 
 from ocr.preprocess import preprocess_image
 from ocr.ocr_engine import extract_text
 from utils.language_detector import detect_best_language, LANGUAGES
 from nlp.text_cleaner import clean_ocr_text
-from nlp.translator import translate_to_english
-from nlp.field_extractor import extract_fields
 
+st.set_page_config(page_title="Smart Document Intelligence System", layout="wide")
+st.title("📄 Smart Document Intelligence System (SDIS)")
+st.caption("Marathi → Extract Only IDs | English → Extract Full Text")
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(
-    page_title="Smart Document Intelligence System",
-    layout="wide"
-)
-
-st.title("📄 Smart Document Intelligence System")
-st.caption("English | Hindi | Marathi")
-
-
-# ---------------- FILE UPLOAD ----------------
 uploaded_file = st.file_uploader(
-    "Upload Document Image",
+    "Upload Marathi or English Document Image",
     type=["png", "jpg", "jpeg"]
 )
 
-if uploaded_file is not None:
-
-    # ---------- Load Image ----------
+if uploaded_file:
     image = Image.open(uploaded_file)
     image_np = np.array(image)
 
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    # ---------- Preprocess ----------
     processed = preprocess_image(image_np)
 
-    # ---------- Detect Language ----------
-    detected_lang, scores = detect_best_language(processed)
+    detected_lang, _ = detect_best_language(processed)
 
-    # ---------- OCR ----------
-    if detected_lang == "eng":
-        extracted_text = extract_text(processed, "eng")
-
-    elif detected_lang in ["hin", "mar"]:
-        extracted_text = extract_text(processed, "mar+hin+eng")
-
-    elif detected_lang == "hye":
-        extracted_text = extract_text(processed, "hye")
-
-    else:
-        extracted_text = extract_text(processed, "eng")
-
-    # ---------- Display Language ----------
     st.subheader("🌐 Detected Language")
     st.success(f"{LANGUAGES.get(detected_lang, 'Unknown')} ({detected_lang})")
 
-    # ---------- Display OCR ----------
-    st.subheader("📝 Extracted Text")
-    st.text(extracted_text if extracted_text.strip() else "No text detected")
-
-    # ---------- Clean OCR ----------
-    clean_text = clean_ocr_text(extracted_text)
-
-    # ---------- Translation ----------
-    if detected_lang in ["mar", "hin"]:
-        english_text = translate_to_english(clean_text, detected_lang)
+    if detected_lang == "mar":
+        raw_text = extract_text(processed, language="mar+hin+eng")
+    elif detected_lang == "eng":
+        raw_text = extract_text(processed, language="eng")
     else:
-        english_text = clean_text
+        raw_text = extract_text(processed, language="eng")
 
-    st.subheader("🇬🇧 Translated English Text")
-    st.text(english_text if english_text.strip() else "No translation")
+    clean_text = clean_ocr_text(raw_text)
 
-    # ---------- Field Extraction ----------
-    fields = extract_fields(english_text)
+    if detected_lang == "mar":
+        st.subheader("🆔 Extracted ID(s) from Marathi Text")
+        ids = re.findall(r"\b\d+\b", clean_text)
 
-    st.subheader("📌 Extracted Fields")
-    st.json(fields)
+        if ids:
+            for i, id_value in enumerate(ids, start=1):
+                st.write(f"✅ ID {i}: **{id_value}**")
+        else:
+            st.warning("No ID number found in Marathi text.")
 
-    # ---------- Debug Scores ----------
-    st.subheader("📊 OCR Confidence Scores")
-    st.json(scores)
+        with st.expander("📝 Full Marathi OCR Text"):
+            st.text(clean_text if clean_text else "No text detected")
+
+    else:
+        st.subheader("📝 Extracted English Text")
+        if clean_text.strip():
+            st.text(clean_text)
+        else:
+            st.warning("No English text detected.")
