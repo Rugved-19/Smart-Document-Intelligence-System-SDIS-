@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 st.title("📄 Smart Document Intelligence System")
-st.caption("English | Hindi | Marathi | Armenian OCR + Translation")
+st.caption("English | Hindi | Marathi")
 
 
 # ---------------- FILE UPLOAD ----------------
