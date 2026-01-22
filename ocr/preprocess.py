@@ -3,43 +3,34 @@ import numpy as np
 
 def preprocess_image(image):
     """
-    Handles grayscale, RGB, RGBA images safely.
-    Optimized for OCR (including Armenian).
+    High-quality preprocessing for document OCR.
+    Works well for Marathi / Hindi / English printed text.
     """
 
-    # --- Ensure grayscale ---
+    # Ensure correct format
     if len(image.shape) == 2:
-        # Already grayscale
-        gray = image
-
-    elif len(image.shape) == 3:
-        if image.shape[2] == 3:
-            # RGB or BGR
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        elif image.shape[2] == 4:
-            # RGBA
-            gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
-        else:
-            raise ValueError("Unsupported image format")
-
+        img = image
     else:
-        raise ValueError("Invalid image shape")
+        img = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-    # --- Contrast enhancement (important for Armenian) ---
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # --- Noise removal ---
-    denoised = cv2.fastNlMeansDenoising(enhanced, h=30)
+    # Resize for better OCR (important)
+    h, w = gray.shape
+    if max(h, w) < 1200:
+        gray = cv2.resize(gray, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
 
-    # --- Adaptive thresholding ---
-    thresh = cv2.adaptiveThreshold(
-        denoised,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        10
-    )
+    # Remove noise while preserving edges
+    denoised = cv2.bilateralFilter(gray, 9, 75, 75)
+
+    # Sharpen
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5, -1],
+                       [0, -1, 0]])
+    sharp = cv2.filter2D(denoised, -1, kernel)
+
+    # OTSU Threshold (best for documents)
+    _, thresh = cv2.threshold(sharp, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     return thresh
