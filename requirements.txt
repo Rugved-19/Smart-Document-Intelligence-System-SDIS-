@@ -1,10 +1,6 @@
 streamlit
 numpy
 pillow
-pytesseract
 opencv-python-headless
-transformers
-torch
-sentencepiece
-regex
-scikit-learn
+paddleocr
+paddlepaddle
